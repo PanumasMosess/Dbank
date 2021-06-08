@@ -5,8 +5,10 @@ import "./Token.sol";
 
 contract dBank {
 
+  //assign Token contract to variable
   Token private token;
 
+  //ad mapping(address => uint) public depositStart;
   mapping(address => uint) public depositStart;
   mapping(address => uint) public etherBalanceOf;
   mapping(address => uint) public collateralEther;
@@ -14,11 +16,14 @@ contract dBank {
   mapping(address => bool) public isDeposited;
   mapping(address => bool) public isBorrowed;
 
+  //add events
   event Deposit(address indexed user, uint etherAmount, uint timeStart);
   event Withdraw(address indexed user, uint etherAmount, uint depositTime, uint interest);
   event Borrow(address indexed user, uint collateralEtherAmount, uint borrowedTokenAmount);
   event PayOff(address indexed user, uint fee);
 
+
+  //pass as constructor argument deployed Token contract
   constructor(Token _token) public {
     token = _token;
   }
@@ -35,6 +40,8 @@ contract dBank {
   }
 
   function withdraw() public {
+    //check if msg.sender deposit status is true
+    //assign msg.sender ether deposit balance to variable for event
     require(isDeposited[msg.sender]==true, 'Error, no previous deposit');
     uint userBalance = etherBalanceOf[msg.sender]; //for event
 
@@ -49,17 +56,21 @@ contract dBank {
     //for deposit 0.02 ETH, (etherBalanceOf[msg.sender] / 1e16) = 2 (doubled, (2*31668017)/s)
     uint interestPerSecond = 31668017 * (etherBalanceOf[msg.sender] / 1e16);
     uint interest = interestPerSecond * depositTime;
-
+    
     //send funds to user
     msg.sender.transfer(etherBalanceOf[msg.sender]); //eth back to user
     token.mint(msg.sender, interest); //interest to user
+    //send interest in tokens to user
 
     //reset depositer data
     depositStart[msg.sender] = 0;
     etherBalanceOf[msg.sender] = 0;
     isDeposited[msg.sender] = false;
 
+    //emit event
     emit Withdraw(msg.sender, userBalance, depositTime, interest);
+
+   
   }
 
   function borrow() payable public {
